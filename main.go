@@ -23,11 +23,11 @@ type Order struct {
 var (
 	order1 = Order{
 		Id:     1,
-		Content:  "Content1"
+		Content:  "Content1",
 	}
 	order2 = Order{
 		Id:     2,
-		Content:  "Content2"
+		Content:  "Content2",
 	}
 	orders = []Order{order1, order2}
 )
@@ -50,4 +50,29 @@ func (s *server) GetOrder(ctx context.Context, in *pb.GetOrderRequest) (*pb.GetO
 		Content: order.Content,
 	}
 	return &pb.GetOrderResponse{Order: protoOrder}, nil
+}
+
+// 起動するポートを指定
+var (
+	port = flag.Int("port", 50051, "the port to serve on")
+)
+
+func main(){
+	flag.Parse()
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
+	if err != nil{
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	// gRPCサーバーを起動
+	s := grpc.NewServer()
+	// 自動生成された`order_grpc.pb.go`の`RegisterOrderToServer`を呼び出し、サーバーにサービスを登録
+	pb.RegisterOrderToServer(s, &server{})
+	reflection.Register(s)
+	log.Printf("server listening at %v", lis.Addr())
+
+	if err := s.Serve(lis); err != nil{
+		log.Fatalf("failed to serve: %v", err)
+	}
 }
